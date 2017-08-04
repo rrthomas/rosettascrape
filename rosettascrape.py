@@ -2,16 +2,19 @@ from lxml import html
 from lxml import etree
 import requests
 
-language = 'Lua'
+language = input ('Which language?')
+extension = input ('Which file extension?')
 
-#page = requests.get('http://rosettacode.org/wiki/99_Bottles_of_Beer')
-page = requests.get('http://rosettacode.org/wiki/Category:{0}'.format(language))
+if (extension[0] != '.'):
+	extension = '.' + extension
+
+page = requests.get('http://rosettacode.org/wiki/Category:{0}'.format(language.replace(' ', '_')))
 tree = html.fromstring(page.content)
 
 results = tree.xpath('//div[@id="mw-pages"]//a')
 
 for it in results:	
-	filename = ''.join(c for c in it.text_content() if c.isalnum() or c in (' ','.','_')).rstrip() + '.lua'
+	filename = ''.join(c for c in it.text_content() if c.isalnum() or c in (' ','.','_')).rstrip() + extension
 	title = '{0} -> {1}'.format(it.text_content(), filename)
 	href = it.attrib['href']
 	print('\n{0}\n{1}\n{0}'.format('-' * len(title), title))
@@ -44,6 +47,7 @@ for it in results:
 						snippet = snippet.replace(chr(160), '')
 						snippet = snippet.replace('&gt;', '>')
 						snippet = snippet.replace('&lt;', '<')
+						snippet = snippet.replace('&amp;', '&')
 						print (snippet, end='')
 						f.write(snippet)					
 						snippet = ''
@@ -51,32 +55,11 @@ for it in results:
 						if in_tag:
 							tag += char
 						else:
-							snippet += char
-
-
-			# new_line = True
-			# for subnode in node:
-			# 	if subnode.tag == 'br':
-			# 		print ()
-			# 		new_line = True
-			# 	else:
-			# 		subnodeclass = subnode.attrib['class']
-			# 		if new_line:						
-			# 			indent = subnodeclass[2]
-			# 			print ('    ' * int(indent), end='')
-			# 			new_line = False
-			# 		if subnodeclass.startswith('kw'):
-			# 			print (subnode.text_content(), end=' ')
-			# 		else:
-			# 			print (subnode.text_content(), end='')							
+							snippet += char		
 
 			break
+
 		if node.tag == 'h2' and node.text_content() == language:
 			next_node = True
 
-
-		#subresults = subtree.xpath('//span[@id="{0}"]'.format(language)) #/ancestor/following-sibling
-		#print (subresults)
-
 	print ()	
-	#break
