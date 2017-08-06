@@ -18,7 +18,7 @@ languages = {'Kotlin': '.kt',
 			 'PHP': '.php',
 			 'Groovy': '.groovy',
 			 'CoffeeScript': '.coffee',
-			 'Haskell', 'hs'}
+			 'Haskell': 'hs'}
 
 class RosettaScraper(Thread):
 
