@@ -35,8 +35,19 @@ class RosettaScraper(Thread):
 		if not os.path.exists(language):
 			os.makedirs(language)
 	
-		page = requests.get('http://rosettacode.org/wiki/Category:{0}'.format(language.replace(' ', '_')))
-		tree = html.fromstring(page.content)
+		html_source = ''
+
+		if os.path.isfile('.html/#' + language.replace(' ', '_') + '.html'):
+			with open('.html/#' + language.replace(' ', '_') + '.html', 'r') as content_file:    
+				html_source = content_file.read()
+		else:
+			page = requests.get('http://rosettacode.org/wiki/Category:{0}'.format(language.replace(' ', '_')))
+			html_source = str(page.content)
+
+			with open('.html/#' + language.replace(' ', '_') + '.html', 'w') as content_file:    
+				content_file.write(html_source)
+
+		tree = html.fromstring(html_source)
 
 		results = tree.xpath('//div[@id="mw-pages"]//a')
 
@@ -44,17 +55,23 @@ class RosettaScraper(Thread):
 			description = it.text_content().replace('/', ' - ')
 			filename = language + '/' + ''.join(c for c in description if c.isalnum() or c in (' ','.','_')).rstrip() 
 
-			if os.path.isfile(filename + extension):
-				continue
-
 			href = it.attrib['href']
 			
-			subpage = requests.get('http://rosettacode.org' + href)
-			subtree = html.fromstring(subpage.content)
+			if os.path.isfile('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html'):
+				with open('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html', 'r') as content_file:    
+					html_source = content_file.read()
+			else:
+				subpage = requests.get('http://rosettacode.org' + href)				
+				html_source = str(subpage.content)
+				with open('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html', 'w') as content_file:    
+					content_file.write(html_source)
+
+			subtree = html.fromstring(html_source)
 
 			subresults = subtree.xpath('//*[@id="mw-content-text"]/*')
 
 			additional = ''
+			note = ''
 			process_node = False
 			for node in subresults:
 
@@ -99,10 +116,13 @@ class RosettaScraper(Thread):
 						additional += 'i'
 
 					elif not node.tag == 'h2':
-
-						with open(filename + additional + '.txt', 'a') as f:
-
+						
+						with open(filename + note + '.txt', 'a') as f:
 							f.write(node.text_content())
+
+						if note == '':
+							note = ' i'
+						note += 'i'
 
 				if not process_node:
 					if node.tag == 'h2' and node.text_content() == language:
@@ -115,6 +135,9 @@ class RosettaScraper(Thread):
 
 
 scanners = []
+
+if not os.path.exists('.html'):
+	os.makedirs('.html')
 
 for language, extension in languages.items():
 	scanner = RosettaScraper(language, extension)
