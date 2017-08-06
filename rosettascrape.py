@@ -20,6 +20,8 @@ languages = {'Kotlin': '.kt',
 			 'CoffeeScript': '.coffee',
 			 'Haskell': 'hs'}
 
+page_downloads = {}
+
 class RosettaScraper(Thread):
 
 	def __init__(self, language, extension):
@@ -55,16 +57,22 @@ class RosettaScraper(Thread):
 			description = it.text_content().replace('/', ' - ')
 			filename = language + '/' + ''.join(c for c in description if c.isalnum() or c in (' ','.','_')).rstrip() 
 
-			href = it.attrib['href']
-			
+			href = it.attrib['href']		
+
+			if href in page_downloads:							
+				while page_downloads[href] == False:
+					pass
+
 			if os.path.isfile('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html'):
 				with open('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html', 'r') as content_file:    
 					html_source = content_file.read()
 			else:
+				page_downloads[href] = False
 				subpage = requests.get('http://rosettacode.org' + href)				
 				html_source = str(subpage.content)
 				with open('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html', 'w') as content_file:    
 					content_file.write(html_source)
+				page_downloads[href] = True
 
 			subtree = html.fromstring(html_source)
 
