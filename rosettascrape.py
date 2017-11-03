@@ -8,17 +8,22 @@ import os.path
 languages = {'Kotlin': '.kt', 
 			 'C#': '.cs',
 			 'Ruby': '.rb', 
-			 'JavaScript': '.js', 
 			 'Lua': '.lua', 
-			 'Python': '.py', 
-			 'Java': '.java', 
-			 'C++': '.cpp', 			 
-			 'Go': '.go', 			 
-			 'Perl 6': '.p6',
-			 'PHP': '.php',
-			 'Groovy': '.groovy',
+			 'JavaScript': '.js', 			 
 			 'CoffeeScript': '.coffee',
-			 'Haskell': 'hs'}
+			 'Groovy': '.groovy',
+			 'Python': '.py', 
+			 'Perl 6': '.p6',			 			 
+			 'Clojure': '.cl',
+			 'Haskell': 'hs',
+			 'C': '.c', 			 
+			 'C++': '.cpp', 			 
+			 'Rust': '.rs', 
+			 'Go': '.go', 			 			 			 
+			 'PHP': '.php',
+			 'Java': '.java', 
+			 'Dart': '.dart', 			 
+			 'Elixir': '.ex'}
 
 page_downloads = {}
 
@@ -76,6 +81,8 @@ class RosettaScraper(Thread):
 
 			subtree = html.fromstring(html_source)
 
+			#print (html_source)
+
 			subresults = subtree.xpath('//*[@id="mw-content-text"]/*')
 
 			additional = ''
@@ -86,7 +93,7 @@ class RosettaScraper(Thread):
 				if process_node:
 					
 					if node.tag == 'pre' or node.tag == 'code':
-					
+				
 						code = etree.tostring(node, encoding='unicode', with_tail=False)			
 
 						title = '{0} : {1} -> {2}'.format(language, it.text_content(), filename + additional + extension)
@@ -133,10 +140,11 @@ class RosettaScraper(Thread):
 						note += 'i'
 
 				if not process_node:
-					if node.tag == 'h2' and node.text_content() == language:
+					if node.tag == 'h2' and node.text_content().replace('[edit]', '') == language:
+						
 						process_node = True
 				else:
-					if node.tag == 'h2' and not node.text_content() == language:
+					if node.tag == 'h2' and not node.text_content().replace('[edit]', '') == language:
 						break
 
 			print ()	
