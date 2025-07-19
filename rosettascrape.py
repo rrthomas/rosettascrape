@@ -1,38 +1,28 @@
-from threading import Thread
-from lxml import html
-from lxml import etree
-import requests
+#!/usr/bin/env python3
+
 import os
 import os.path
+import sys
+from pathlib import Path
+from threading import Thread
 
-languages = {'Kotlin': '.kt', 
-			 'C#': '.cs',
-			 'Ruby': '.rb', 
-			 'Lua': '.lua', 
-			 'JavaScript': '.js', 			 
-			 'CoffeeScript': '.coffee',
-			 'Groovy': '.groovy',
-			 'Python': '.py', 
-			 'Perl 6': '.p6',			 			 
-			 'Clojure': '.cl',
-			 'Haskell': '.hs',
-			 'C': '.c', 			 
-			 'C++': '.cpp', 			 
-			 'Rust': '.rs', 
-			 'Go': '.go', 			 			 			 
-			 'PHP': '.php',
-			 'Java': '.java', 
-			 'Dart': '.dart', 			 
-			 'Elixir': '.ex'}
+import pygments.lexers
+import requests
+from lxml import etree, html
+
 
 page_downloads = {}
 
+headers = {
+    "User-Agent": "rosettascrape/0.1 (https://github.com/rrthomas/rosettascrape; rrt@sc3d.org)"
+}
+
 class RosettaScraper(Thread):
 
-	def __init__(self, language, extension):
+	def __init__(self, language):
 		Thread.__init__(self)    
 		self.l = language
-		self.e = extension
+		self.e = Path(pygments.lexers.find_lexer_class_by_name(language).filenames[0]).suffix
 
 	def run(self): 
 
@@ -48,8 +38,8 @@ class RosettaScraper(Thread):
 			with open('.html/#' + language.replace(' ', '_') + '.html', 'r') as content_file:    
 				html_source = content_file.read()
 		else:
-			page = requests.get('http://rosettacode.org/wiki/Category:{0}'.format(language.replace(' ', '_')))
-			html_source = str(page.content)
+			page = requests.get('https://rosettacode.org/wiki/Category:{0}'.format(language.replace(' ', '_')), headers=headers)
+			html_source = str(page.text)
 
 			with open('.html/#' + language.replace(' ', '_') + '.html', 'w') as content_file:    
 				content_file.write(html_source)
@@ -73,8 +63,8 @@ class RosettaScraper(Thread):
 					html_source = content_file.read()
 			else:
 				page_downloads[href] = False
-				subpage = requests.get('http://rosettacode.org' + href)				
-				html_source = str(subpage.content)
+				subpage = requests.get('https://rosettacode.org' + href, headers=headers)
+				html_source = str(subpage.text)
 				with open('.html/' + href.replace('/wiki/', '').replace('/', ' - ') + '.html', 'w') as content_file:    
 					content_file.write(html_source)
 				page_downloads[href] = True
@@ -83,7 +73,7 @@ class RosettaScraper(Thread):
 
 			#print (html_source)
 
-			subresults = subtree.xpath('//*[@id="mw-content-text"]/*')
+			subresults = subtree.xpath('//*[@id="mw-content-text"]/div[contains(@class, "mw-parser-output")]/*')
 
 			additional = ''
 			note = ''
@@ -94,7 +84,7 @@ class RosettaScraper(Thread):
 					
 					if node.tag == 'pre' or node.tag == 'code':
 				
-						code = etree.tostring(node, encoding='unicode', with_tail=False)			
+						code = etree.tostring(node, encoding='unicode', with_tail=False)
 
 						title = '{0} : {1} -> {2}'.format(language, it.text_content(), filename + additional + extension)
 						print('\n{0}\n{1}\n{0}'.format('-' * len(title), title))
@@ -140,7 +130,8 @@ class RosettaScraper(Thread):
 						note += 'i'
 
 				if not process_node:
-					if node.tag == 'h2' and node.text_content().replace('[edit]', '') == language:
+
+					if node.tag == 'h2' and node.text_content().replace('[edit]', '').strip() == language:
 						
 						process_node = True
 				else:
@@ -155,8 +146,10 @@ scanners = []
 if not os.path.exists('.html'):
 	os.makedirs('.html')
 
-for language, extension in languages.items():
-	scanner = RosettaScraper(language, extension)
+languages = sys.argv[1:]
+
+for language in languages:
+	scanner = RosettaScraper(language)
 	scanner.start()
 
 for scanner in scanners:
